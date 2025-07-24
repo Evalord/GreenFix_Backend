@@ -56,6 +56,7 @@ const loginUser = async (req, res) => {
   email = email?.toLowerCase(); // Force l'email en minuscule
 
   try {
+    // Vérifie si l'utilisateur existe
     const user = await userModel.findUserByEmail(email);
     if (!user) {
       return res.status(404).json({ message: "Utilisateur non trouvé" });
