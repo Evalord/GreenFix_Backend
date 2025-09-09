@@ -6,9 +6,11 @@ const createTableIfNotExists = async () => {
   const checkTableQuery = `
     CREATE TABLE IF NOT EXISTS ${process.env.Table_users} (
       id SERIAL PRIMARY KEY,
+      uid VARCHAR(100) NOT NULL,
       name VARCHAR(100) NOT NULL,
       email VARCHAR(100) UNIQUE NOT NULL,
       password VARCHAR(100) NOT NULL,
+      role VARCHAR(50) NOT NULL,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
   `;
@@ -21,11 +23,12 @@ const getAllUser = async () => {
   return rows;
 };
 
-const createUser = async (name, email, password) => {
+const createUser = async (name, email, password, uid, role) => {
   await createTableIfNotExists(); // Assure-toi que la table existe avant de créer un utilisateur
   const { rows } = await db.query(
-    `INSERT INTO ${process.env.Table_users} (name, email, password) VALUES ($1, $2,$3) RETURNING *`,
-    [name, email, password]
+    `INSERT INTO ${process.env.Table_users} (name, email, password, uid, role) 
+     VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+    [name, email, password, uid, role]
   );
   return rows[0];
 };
