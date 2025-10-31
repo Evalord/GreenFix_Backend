@@ -21,9 +21,7 @@ const getUsers = async (req, res) => {
 
 // Ajouter un nouvel utilisateur
 const addUser = async (req, res) => {
-  let { name, email, password, role, company } = req.body; // Ajout de role et company
-
-  email = email?.toLowerCase(); // Force l'email en minuscule
+  const { name, email, password, role } = req.body;
 
   try {
     const existing = await userModel.findUserByEmail(email);
@@ -31,16 +29,26 @@ const addUser = async (req, res) => {
       return res.status(409).json({ message: "Email déjà utilisé" });
     }
 
+    // Générer un uid unique
+    const uid = require("crypto").randomBytes(16).toString("hex");
+
     // Hacher le mot de passe avant de le sauvegarder
     const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Vérifier que le rôle est valide
+    if (!role || !["producer", "collector"].includes(role)) {
+      return res.status(400).json({
+        message: "Rôle invalide. Doit être 'producer' ou 'collector'",
+      });
+    }
 
     // Créer l'utilisateur
     const user = await userModel.createUser(
       name,
       email,
       hashedPassword,
-      role,
-      company
+      uid,
+      role
     );
     return res.status(201).json({ data: user, message: "Utilisateur créé" });
   } catch (error) {
@@ -51,12 +59,11 @@ const addUser = async (req, res) => {
 
 // Connexion d'un utilisateur
 const loginUser = async (req, res) => {
-  let { email, password } = req.body;
-
-  email = email?.toLowerCase(); // Force l'email en minuscule
+  console.log("Tentative de connexion reçue pour:", req.body);
+  const { email, password } = req.body;
 
   try {
-    // Vérifie si l'utilisateur existe
+    console.log("Recherche de l'utilisateur avec l'email:", email);
     const user = await userModel.findUserByEmail(email);
     if (!user) {
       return res.status(404).json({ message: "Utilisateur non trouvé" });
@@ -73,17 +80,19 @@ const loginUser = async (req, res) => {
       expiresIn: "1h",
     });
 
-    return res.status(200).json({
+    const responseData = {
       message: "Connexion réussie",
       token,
       user: {
         id: user.id,
         name: user.name,
         email: user.email,
-        role: user.role, // Ajout du rôle
-        company: user.company, // Ajout de la société
+        role: user.role,
+        uid: user.uid,
       },
-    });
+    };
+    console.log("Envoi de la réponse de connexion:", responseData);
+    return res.status(200).json(responseData);
   } catch (error) {
     console.error("Erreur lors de la connexion :", error.message);
     return res.status(500).json({ message: "Erreur serveur" });
